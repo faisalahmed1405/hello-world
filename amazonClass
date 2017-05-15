@@ -1,0 +1,127 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May  8 10:21:01 2017
+
+@author: faisal
+"""
+
+
+
+
+from __future__ import division
+import nltk
+import pandas as pd
+import math
+import numpy as np
+import re
+from nltk import word_tokenize
+from nltk import FreqDist
+import unicodedata
+
+def getTokens(tex):
+    
+    return re.findall(r'\w+', tex)
+def lemmati(tokens):
+    wnl=nltk.WordNetLemmatizer()
+    return [wnl.lemmatize(t) for t in tokens]
+    
+
+def tokensmall(inputdata):#enter the list of the data (inputdata is list)
+    l=len(inputdata)
+    
+    tokenn=[None]*l
+    smalltokens=[None]*l
+    tokentext=[]
+    porter=nltk.PorterStemmer()
+    temp=[]
+    i=0
+    while (i<l):
+        tokenn[i]= getTokens(str(inputdata[i]))
+        
+        tokentext.append(nltk.Text(tokenn[i]))
+        if(tokenn[i] is not None):
+            for w in tokenn[i]:
+              temp.append(w.lower())
+              
+        smalltokens[i]=[porter.stem(t) for t in temp]
+        
+        i=i+1
+        temp=[]
+    return smalltokens
+ 
+def frdist(smalltoken):
+    l=len(smalltoken)
+    text=" "
+    i=0
+    while (i<l):
+        j=0
+        if smalltoken[i] is not None:
+            while j<len(smalltoken[i]):
+                if (type(smalltoken[i][j]) is not str):
+                    smalltoken[i][j]=unicodedata.normalize('NFKD', smalltoken[i][j]).encode('ascii','ignore')
+                text=text+" "+smalltoken[i][j]
+                j=j+1
+        i=i+1
+    token =word_tokenize(text)
+    fdist = FreqDist(token)
+    print len(fdist)
+    return fdist.most_common(50)
+
+    
+def tf(doctokens,featureset):
+    termf=[]
+    
+    for word in featureset:
+        
+        counter=0
+        for w in doctokens:
+            if(w==word):
+                counter=counter+1
+        if len(doctokens)>0:
+            termf.append(counter/len(doctokens))
+        else:
+            termf.append(9999)
+    return termf
+
+def idf(smalltokens,featureset):
+   
+   
+    idff=[]
+    for word in featureset:
+        counter=0
+        i=0
+        while (i< len(smalltokens)): 
+            if(word in smalltokens[i]):
+                counter=counter+1
+            i=i+1
+        idff.append(math.log(len(smalltokens)/counter))
+    return idff   
+
+ 
+def tfidf(smalltokens,featureset):
+    tfidflist=[]
+    tflist=[]
+    k=0
+    for i in smalltokens:
+        tflist.append(tf(i,featureset))
+    idflist=idf(smalltokens,featureset)
+    while k<len(idflist):
+        tfidflist.append(np.multiply(tflist[k],idflist))
+        k=k+1
+      
+    return tfidflist
+
+def main(inputdf,textcol,n):
+    #datalist=list(inputdf[inputdf['ratings']==n][textcol])
+    featureset=[]
+    datalist=list(inputdf[textcol])
+    smalltokens=tokensmall(datalist)
+    
+    output=frdist(smalltokens)
+    
+    for i in output:
+        featureset.append(i[0])
+    #return featureset
+    return smalltokens
+    #print tfidf(smalltokens,featureset)
